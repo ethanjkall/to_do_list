@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/database.dart';
 import '../models/task_list.dart';
 import 'package:to_do_list/models/task.dart';
 
@@ -14,6 +15,7 @@ class TaskPage extends StatefulWidget {
 class _TaskPageState extends State<TaskPage> {
   TextEditingController inputController = TextEditingController();
   bool editMode = false;
+  var db = DatabaseConnect();
 
   Future<void> _addTaskDialog() async {
     return showDialog(
@@ -40,15 +42,33 @@ class _TaskPageState extends State<TaskPage> {
         });
   }
 
-  void _addTask(String taskName) {
-    setState(() {
-      widget.currentList.addTask(taskName);
-    });
+  void _addTask(String taskName) async {
+    await db.insertTask(Task(taskName, widget.currentList.id));
+    _getTasks();
+    setState(() {});
     inputController.clear();
+  }
+
+  void _removeTask(Task task) async {
+    await db.deleteTask(task);
+    _getTasks();
+    setState(() {});
+  }
+
+  void _toggleTask(Task task) async {
+    await db.toggleTask(task.id, task.isComplete);
+    _getTasks();
+    setState(() {});
+  }
+
+  void _getTasks() async {
+    widget.currentList.taskList = await db.getTasks(widget.currentList.id);
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    _getTasks();
     return Scaffold(
       backgroundColor: Colors.lightBlue[30],
       appBar: AppBar(
@@ -116,7 +136,7 @@ class _TaskPageState extends State<TaskPage> {
             shape: const CircleBorder(),
             onChanged: (bool? value) {
               setState(() {
-                currentTask.isComplete = !currentTask.isComplete;
+                _toggleTask(currentTask);
                 value = currentTask.isComplete;
               });
             },
@@ -127,7 +147,7 @@ class _TaskPageState extends State<TaskPage> {
             ? IconButton(
                 onPressed: () {
                   setState(() {
-                    widget.currentList.removeTask(currentTask);
+                    _removeTask(currentTask);
                   });
                 },
                 icon: const Icon(Icons.disabled_by_default_rounded))

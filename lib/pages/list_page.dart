@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_list/models/database.dart';
 
 import '../models/task_list.dart';
 import 'task_page.dart';
@@ -11,14 +12,11 @@ class ListPage extends StatefulWidget {
 }
 
 class _ListPageState extends State<ListPage> {
-  final lists = <TaskList>[
-    TaskList('Home'),
-    TaskList('Work'),
-    TaskList('School')
-  ];
+  List<TaskList> lists = <TaskList>[];
   TaskList? currentList;
   TextEditingController inputController = TextEditingController();
   bool editMode = false;
+  var db = DatabaseConnect();
 
   Future<void> _addListDialog() async {
     return showDialog(
@@ -45,15 +43,27 @@ class _ListPageState extends State<ListPage> {
         });
   }
 
-  void _addList(String name) {
-    setState(() {
-      lists.add(TaskList(name));
-    });
+  void _addList(String name) async {
+    await db.insertList(TaskList(name));
+    _getLists();
+    setState(() {});
     inputController.clear();
+  }
+
+  void _removeList(TaskList list) async {
+    await db.deleteList(list);
+    _getLists();
+    setState(() {});
+  }
+
+  void _getLists() async {
+    lists = await db.getLists();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    _getLists();
     return Scaffold(
       backgroundColor: Colors.lightBlue[30],
       appBar: AppBar(
@@ -103,7 +113,7 @@ class _ListPageState extends State<ListPage> {
                     ? IconButton(
                         onPressed: () {
                           setState(() {
-                            lists.remove(lists[index]);
+                            _removeList(lists[index]);
                           });
                         },
                         icon: const Icon(Icons.disabled_by_default_rounded))
